@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "terminal-notifier -title 'Claude Code' -message 'Claude Code処理が完了しました' -sound default",
+            "command": "terminal-notifier -title 'Claude Code 完了' -message \"$(basename $(pwd))ですべての処理が完了しました\" -sound Glass",
             "timeout": 5000
           }
         ]
@@ -17,11 +17,51 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "terminal-notifier -title 'ファイル編集完了' -message \"$(basename $(pwd))でファイルの編集が完了しました\" -sound Tink",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "terminal-notifier -title 'コマンド実行完了' -message \"$(basename $(pwd))でBashコマンドの実行が完了しました\" -sound Pop",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "TodoWrite",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "terminal-notifier -title 'タスク更新' -message \"$(basename $(pwd))でTodoリストが更新されました\" -sound Purr",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Grep|Glob|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "terminal-notifier -title 'ファイル検索/読み込み完了' -message \"$(basename $(pwd))でファイルの検索または読み込みが完了しました\" -sound Ping",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
         "matcher": ".*",
         "hooks": [
           {
-            "type": "command", 
-            "command": "terminal-notifier -title 'Claude Code' -message 'ツール実行が完了しました' -sound default",
+            "type": "command",
+            "command": "terminal-notifier -title 'Claude Code' -message \"$(basename $(pwd))でツール実行完了\" -sound default",
             "timeout": 5000
           }
         ]
