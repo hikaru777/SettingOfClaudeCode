@@ -3,18 +3,6 @@
     "lastShownTime": 1753969992115
   },
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "terminal-notifier -title 'Claude Code 許可要求' -message \"$(basename $(pwd))でClaudeが許可を求めています\" -sound Glass",
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "matcher": ".*",
@@ -58,16 +46,16 @@
           }
         ]
       },
-      {
-        "matcher": "Grep|Glob|Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "terminal-notifier -title 'ファイル検索/読み込み完了' -message \"$(basename $(pwd))でファイルの検索または読み込みが完了しました\" -sound Ping",
-            "timeout": 5000
-          }
-        ]
-      },
+//      {
+//        "matcher": "Grep|Glob|Read",
+//        "hooks": [
+//          {
+//            "type": "command",
+//            "command": "terminal-notifier -title 'ファイル検索/読み込み完了' -message \"$(basename $(pwd))でファイルの検索または読み込みが完了しました\" -sound Ping",
+//            "timeout": 5000
+//          }
+//        ]
+//      },
       {
         "matcher": ".*",
         "hooks": [
