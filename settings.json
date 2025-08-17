@@ -1,0 +1,31 @@
+{
+  "feedbackSurveyState": {
+    "lastShownTime": 1753969992115
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "terminal-notifier -title 'Claude Code' -message 'Claude Code処理が完了しました' -sound default",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command", 
+            "command": "terminal-notifier -title 'Claude Code' -message 'ツール実行が完了しました' -sound default",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
