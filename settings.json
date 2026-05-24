@@ -1,8 +1,104 @@
 {
-  "feedbackSurveyState": {
-    "lastShownTime": 1753969992115
+  "env": {
+    "MAX_THINKING_TOKENS": "30000",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "OBSIDIAN_BRAIN_VAULT_PATH": "/Users/hondahikaru/Documents/輝/Claude Agents Brain"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(xcodebuild:*)",
+      "Bash(xcodegen:*)",
+      "Bash(xcrun:*)",
+      "Bash(swift:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(go:*)",
+      "Bash(brew:*)",
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)",
+      "Bash(psql:*)",
+      "Bash(curl:*)",
+      "Bash(open:*)",
+      "Bash(kill:*)",
+      "Bash(osascript:*)",
+      "Bash(for pkg:*)",
+      "Bash(sed -i:*)",
+      "Bash(chmod:*)",
+      "Bash(claude:*)",
+      "Bash(firebase:*)",
+      "Bash(env)",
+      "Bash(lsof:*)",
+      "Bash(find:*)",
+      "Bash(source:*)",
+      "Bash(gcloud:*)",
+      "Bash(sleep:*)",
+      "Bash(printf:*)",
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(echo:*)",
+      "Bash(tail:*)",
+      "Bash(head:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(pkill:*)",
+      "Bash(which:*)",
+      "Bash(terminal-notifier:*)",
+      "Bash(exec zsh)",
+      "Bash(du -sh:*)",
+      "Bash(rm:*)",
+      "Bash(cp:*)",
+      "Bash(git clone:*)",
+      "WebSearch",
+      "WebFetch(domain:*)",
+      "Read(//private/tmp/**)",
+      "Read(//tmp/**)",
+      "Read(//dev/**)",
+      "Read(//private/var/**)",
+      "Read(//var/**)",
+      "mcp__XcodeBuildMCP__*",
+      "mcp__plugin_firebase_firebase__*",
+      "mcp__plugin_obsidian-brain_obsidian-brain__*",
+      "Skill(claude-api:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)"
+    ],
+    "additionalDirectories": [
+      "/Users/hondahikaru/app",
+      "/Users/hondahikaru/Work",
+      "/Users/hondahikaru/.claude",
+      "/dev"
+    ]
   },
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/hondahikaru/app/obsidian-brain-mcp/dist/cli/brain-auto-load.js",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path // empty'); case \"$FILE\" in *.env|*.env.*|*GoogleService-Info.plist|*credentials*) echo \"BLOCKED: $FILE is a protected file\" >&2; exit 2;; esac; exit 0"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": ".*",
@@ -16,6 +112,16 @@
       }
     ],
     "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/hondahikaru/.claude/scripts/swift-precheck.sh",
+            "timeout": 10000
+          }
+        ]
+      },
       {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
@@ -45,27 +151,73 @@
             "timeout": 5000
           }
         ]
-      },
-//      {
-//        "matcher": "Grep|Glob|Read",
-//        "hooks": [
-//          {
-//            "type": "command",
-//            "command": "terminal-notifier -title 'ファイル検索/読み込み完了' -message \"$(basename $(pwd))でファイルの検索または読み込みが完了しました\" -sound Ping",
-//            "timeout": 5000
-//          }
-//        ]
-//      },
+      }
+    ],
+    "Notification": [
       {
-        "matcher": ".*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "terminal-notifier -title 'Claude Code' -message \"$(basename $(pwd))でツール実行完了\" -sound default",
-            "timeout": 5000
+            "command": "osascript -e 'display notification \"入力を待っています\" with title \"Claude Code\"'"
           }
         ]
       }
     ]
-  }
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node $HOME/.claude/hud/omc-hud.mjs"
+  },
+  "enabledPlugins": {
+    "swift-lsp@claude-plugins-official": true,
+    "firebase@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "vercel@claude-plugins-official": true,
+    "oh-my-claudecode@omc": false,
+    "claude-mem@thedotmack": true,
+    "obsidian-brain@obsidian-brain": true
+  },
+  "extraKnownMarketplaces": {
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/skills"
+      }
+    },
+    "renoise-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "ArcoCodes/renoise-plugins-official"
+      }
+    },
+    "omc": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/Yeachan-Heo/oh-my-claudecode.git"
+      }
+    },
+    "thedotmack": {
+      "source": {
+        "source": "github",
+        "repo": "thedotmack/claude-mem"
+      }
+    },
+    "obsidian-brain": {
+      "source": {
+        "source": "github",
+        "repo": "hikaru777/obsidian-brain-plugin"
+      }
+    }
+  },
+  "language": "Japanese",
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "max",
+  "voiceEnabled": true,
+  "skipDangerousModePermissionPrompt": true,
+  "defaultPermissionMode": "plan"
 }

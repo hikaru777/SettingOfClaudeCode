@@ -1,0 +1,31 @@
+# Claude Code 設定リポジトリ (SettingOfClaudeCode)
+#
+# 方針: ルート直下は全て無視し、設定・指示・スキル資産だけを明示的に追跡する。
+# ホワイトリスト方式にすることで、secret / 巨大ファイル / 会話履歴 / キャッシュの
+# 混入を「うっかり」では起こせない構造にしている。
+#
+# 追跡対象を増やしたい時は、下の許可リストに `!/<name>` を1行足すこと。
+
+# --- まずルート直下を全て無視 ---
+/*
+
+# --- 追跡する設定資産だけを許可 ---
+!/.gitignore
+!/CLAUDE.md
+!/settings.json
+!/skills/
+!/docs/
+!/commands/
+!/agents/
+!/scripts/
+
+# --- 明示的に除外（公開してはいけない / 不要なもの） ---
+# settings.local.json … マシン固有・秘密を含む
+# ~/.claude.json      … MCP トークン等（そもそもリポジトリ外）
+# projects/           … 会話履歴・auto-memory（巨大・プライベート）
+# plugins/            … プラグイン実体（巨大・別管理）
+# *cache* / sessions/ / backups/ / telemetry/ / history.jsonl … 実行時の生成物
+# 上記はすべて先頭の `/*` で無視済み。許可リストに無い限り追跡されない。
+
+# 許可ディレクトリ配下に紛れ込む OS ゴミは除外
+**/.DS_Store
