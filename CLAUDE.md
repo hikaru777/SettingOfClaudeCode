@@ -39,16 +39,38 @@
 - **保存系 UI**: 必ず `savedSnapshot` パターンで `hasUnsavedChanges` を判定。変更がない時は ✓ ボタンを `.disabled(true)` にする
 - **sheet の ✕ / ✓ ボタン**: Liquid Glass の丸ボタンで統一 → `.glassEffect(.regular, in: .circle)`
 - **modifier 使用前**: SwiftUI のバージョン要件を確認。iOS 18+ 専用 API は deployment target 以下では使わない
+- **UI 状態網羅**: 実装前に必ず empty / loading / error / unchanged / partial selection / all selected の状態を列挙する。happy path だけ書いて出すな
+- **selection UI**: none / partial / all selected の 3 状態をすべて持つ。action button は対象ゼロ時 disabled
+- **dirty state 追跡**: 初期化時に savedSnapshot を capture し、現在値との比較で hasUnsavedChanges を出す。これがない保存系 UI は未完成
 
 # Reviewer Agent Checklist
 ★★★ コードレビュー時は以下を必ずチェック。compile-readiness を保証すること ★★★
 
-- **import 完備**: `Foundation`（Date/DateFormatter）、`SwiftUI`（View）、`Observation`（@Observable）など漏れなく確認
-- **@MainActor isolation**: actor 境界をまたぐ値は `Sendable` 準拠のみ。違反はエラー
-- **重複宣言なし**: 同一スコープでの型・プロパティ・関数の二重定義を確認
-- **SwiftUI modifier API 実在確認**: training data ベースで API を発明しない。実在しない modifier は使わない
-- **Preview stub 同期**: protocol 追加・変更時は Preview の stub も同時に更新
+**Swift compile basics**:
+- **import 完備**: `Foundation`（Date/URL/UUID/Calendar/Locale/TimeZone）、`SwiftUI`（View）、`Observation`（@Observable）など漏れなく確認
+- **重複宣言なし**: 同一スコープでの型・プロパティ・メソッドの二重定義を確認
+- **SwiftUI modifier API 実在確認**: training data ベースで API を発明しない。`.foregroundStyle(.accent)` のような実在しない modifier は使わない
+- **access control**: cross-module 利用に足りる public / internal 境界か
 - **Compile-readiness**: `swiftc -parse` 単位で構文が通ることを確認してからコード提出
+
+**Swift concurrency**:
+- **@MainActor isolation**: actor 境界をまたぐ値は `Sendable` 準拠のみ。違反はエラー
+- **@Sendable closure 内 captured var mutation**: 違反禁止（参照型ボックスに逃がす）
+- **#Predicate**: 参照型を直接 capture しない（local 束縛で逃がす）
+
+**SwiftUI UX basics**:
+- **confirm / save / apply 系 button**: unchanged state で `.disabled(true)` になっているか
+- **destructive action**: disabled / confirmation / undo のいずれかが検討されているか
+- **selection UI**: none / partial / all selected の状態を持つか
+- **empty / loading / error state**: 必要な view で抜けていないか
+- **native SwiftUI API**: 足りる要件に custom 実装を作っていないか（List / .swipeActions / .sheet / .toolbar / NavigationStack 等）
+
+**Preview / spec 同期**:
+- **Preview stub 同期**: protocol 追加・変更時は全 conformer + InMemory + mock を網羅
+- **既存経路退行ゼロ**: grep でシンボル参照数の継続性検証
+- **Codable 後方互換**: 新 field は `decodeIfPresent + デフォルト`、旧 snapshot の JSONDecoder throw 不在
+
+**Gate ルール**: 上記を確認せず ACK / PASS してはいけない。確認できない場合は PASS ではなく WARN または BLOCKED にする。
 
 # Platform Notes
 ★★★ macOS / Swift ツールチェーンの落とし穴。作業前に必ず確認すること ★★★
@@ -67,11 +89,19 @@
 - UIKit: Assembly/ViewController/Interactor/ViewModel/ViewModelBuilder パターン
 - Coordinator: ViewCoordinator / NavigationCoordinator で画面遷移
 
-# コマンド
-- iOS build: `xcodebuild -workspace *.xcworkspace -scheme <name> -destination '<dest>' build`
+# Build Commands
+★★★ scheme 名を推測するな。必ず `xcodebuild -list` で確認してから使う ★★★
+
+- iOS build: `xcodebuild -workspace *.xcworkspace -scheme '<exact scheme name>' -destination '<dest>' build`
 - XcodeGen: `cd <AppDir> && xcodegen generate`
 - Swift package: `swift build` / `swift test`
 - npm: `npm run dev` / `npm run build` / `npm test`
+
+**Scheme 名の規律**:
+- 実装系タスクの session 開始時に `xcodebuild -list` を 1 度走らせて exact scheme name を確認
+- scheme 名は必ずシングルクォートで囲む（`Tact (Debug - CoPI)` のように空白・括弧含む場合あり）
+- 推測スキーム名（`Tact`、`MyApp` 等の短縮形）を絶対に使わない
+- worker / reviewer は xcodebuild 自体を走らせない。最終確認は team-lead または ユーザーが実行
 
 # セキュリティ
 - .env, GoogleService-Info.plist, Secrets.swift はコミットするな
