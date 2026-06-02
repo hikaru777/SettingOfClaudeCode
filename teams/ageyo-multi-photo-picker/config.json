@@ -1,0 +1,79 @@
+{
+  "name": "ageyo-multi-photo-picker",
+  "description": "AGEYO ChatInputBar の写真選択を複数枚対応 + TextField 上に正方形サムネイル表示",
+  "createdAt": 1777404082021,
+  "leadAgentId": "team-lead@ageyo-multi-photo-picker",
+  "leadSessionId": "3cf0e6bd-934d-43a3-a2d9-2f95913197ed",
+  "members": [
+    {
+      "agentId": "team-lead@ageyo-multi-photo-picker",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "model": "claude-opus-4-7[1m]",
+      "joinedAt": 1777404082021,
+      "tmuxPaneId": "",
+      "cwd": "/Users/hondahikaru/粋挺/AGEYO",
+      "subscriptions": []
+    },
+    {
+      "agentId": "explorer@ageyo-multi-photo-picker",
+      "name": "explorer",
+      "color": "blue",
+      "joinedAt": 1777404143792,
+      "tmuxPaneId": "%15",
+      "subscriptions": [],
+      "agentType": "Explore",
+      "model": "haiku",
+      "prompt": "あなたは AGEYO 写真選択複数枚化チームの explorer です。\n\n## ゴール\nAGEYO チャットの写真選択を **複数枚対応** にする改修。今は単一枚のみ。\n\n## 担当 — Task #1\nTaskList から Task #1 を claim → in_progress → 調査 → completed → designer に SendMessage で結果共有。\n\n## 調査対象（読み取りのみ、Explore 型なので書けない）\n- /Users/hondahikaru/粋挺/AGEYO/Packages/Features/Sources/Chat/Components/ChatInputBar.swift\n- /Users/hondahikaru/粋挺/AGEYO/Packages/Features/Sources/Chat/Components/ChatImagePreview.swift\n- /Users/hondahikaru/粋挺/AGEYO/Packages/Features/Sources/Chat/ChatContent.swift\n- /Users/hondahikaru/粋挺/AGEYO/Packages/Features/Sources/Chat/ChatViewState.swift\n- /Users/hondahikaru/粋挺/AGEYO/Packages/Features/Sources/Chat/ChatViewModel.swift\n- /Users/hondahikaru/粋挺/AGEYO/Packages/Features/Sources/Chat/ChatViewEvent.swift\n\n## 調査ポイント\n1. PhotosPicker(selection: $selectedPhotoItem) の現状（単一選択）\n2. selectedPhotoItem → loadTransferable → selectedImage 変換\n3. ChatViewState.selectedImage の使用箇所\n4. ChatViewEvent .onSelectImage / .onClearImage / .onSend の振る舞い\n5. ChatViewModel.send 内での selectedImage の扱い\n6. ChatImagePreview の場所・デザイン・削除UI\n7. Firebase送信API（addMessage / uploadImage 等）が単一 / 複数 どちらに対応か（Domain/Core を読む必要あり）\n\n## 完了\n- ファイル名:行範囲 付きの調査サマリを designer に SendMessage\n- TaskUpdate で Task #1 を completed\n- team-lead に「Task #1 完了、designer 引き継ぎ済み」を SendMessage\n\nコードは絶対に書き換えないこと。",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/粋挺/AGEYO",
+      "backendType": "tmux",
+      "isActive": false
+    },
+    {
+      "agentId": "designer@ageyo-multi-photo-picker",
+      "name": "designer",
+      "color": "green",
+      "joinedAt": 1777404153701,
+      "tmuxPaneId": "%16",
+      "subscriptions": [],
+      "agentType": "general-purpose",
+      "model": "claude-opus-4-7",
+      "prompt": "あなたは AGEYO 写真選択複数枚化チームの designer です。\n\n## ゴール\nChatInputBar の写真選択を複数枚対応 + 選択画像を TextField の上に正方形サムネで表示。\n\n## 担当 — Task #2（Task #1 完了後着手）\nexplorer から SendMessage を待って、設計メモを作成し impl に SendMessage。実装はしない。\n\n## 設計内容\n1. **state model**:\n   - selectedPhotoItem (single) → selectedPhotoItems: [PhotosPickerItem]\n   - ChatViewState.selectedImage (single) → selectedImages: [UIImage]\n   - ChatViewEvent .onSelectImage(UIImage) → .onSelectImages([UIImage]) または .onAddImage(UIImage) / .onRemoveImage(Int)\n   - 既存の単一バインディングを段階的に migrate\n\n2. **PhotosPicker**:\n   - `PhotosPicker(selection: $selectedPhotoItems, maxSelectionCount: 10, matching: .images)`\n\n3. **サムネ UI（新規 ChatImageThumbnailRow か ChatImagePreview 拡張）**:\n   - 配置: TextField の **上**、ChatInputBar 内 VStack(spacing: 8)\n   - HStack ScrollView(.horizontal)\n   - 各サムネ: 80x80、cornerRadius 12、Image(uiImage:).resizable().scaledToFill().clipped()\n   - 右上に × ボタン（小さい円形ボタン、Image(systemName: \"xmark.circle.fill\")）\n   - 0枚なら非表示\n\n4. **削除ハンドラ**:\n   - × タップで onRemoveImage(index) → ChatViewModel.send で selectedImages.remove(at: index)\n\n5. **送信**:\n   - canSend = !text.isEmpty || !selectedImages.isEmpty\n   - ChatViewModel.send 内で selectedImages を順次 or 一括送信 (explorer の調査結果に依存)\n\n## 完了\n- 設計メモを impl に SendMessage（手順書形式、コード例つき）\n- TaskUpdate で Task #2 を completed\n- team-lead に SendMessage",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/粋挺/AGEYO",
+      "backendType": "tmux",
+      "isActive": false
+    },
+    {
+      "agentId": "impl@ageyo-multi-photo-picker",
+      "name": "impl",
+      "color": "yellow",
+      "joinedAt": 1777404161056,
+      "tmuxPaneId": "%17",
+      "subscriptions": [],
+      "agentType": "general-purpose",
+      "model": "claude-opus-4-7",
+      "prompt": "あなたは AGEYO 写真選択複数枚化チームの implementer です。\n\n## ゴール\nChatInputBar の写真選択を複数枚対応 + TextField 上に正方形サムネ表示。\n\n## 担当 — Task #3（Task #2 完了後着手）\ndesigner から設計メモを SendMessage で受信したら Task #3 claim → in_progress → 実装 → ビルドループ → reviewer に SendMessage。\n\n## 担当ファイル\n- ChatInputBar.swift / ChatContent.swift / ChatViewState.swift / ChatViewModel.swift / ChatViewEvent.swift / ChatImagePreview.swift（拡張 or 新コンポーネント作成可）\n\n## 絶対条件\n1. 既存の Liquid Glass (.glassEffect) / 長押しメニュー / shadow / matchedGeometryEffect / sensoryFeedback すべて**触らない**\n2. TextField の上 (HStack 上) に正方形サムネ HStack を配置（横スクロール ScrollView）\n3. 各サムネに × ボタン\n4. canSend は text || images 両対応\n5. PhotosPicker を maxSelectionCount: 10 で複数選択\n6. ビルドコマンド:\n   ```\n   cd /Users/hondahikaru/粋挺/AGEYO && xcodebuild -workspace AGEYO.xcworkspace -scheme AGEYO-Dev -destination 'platform=iOS Simulator,id=4750C56C-F547-4BD9-9014-2D5DDFE6121B' build 2>&1 | tail -50\n   ```\n7. ビルド失敗時はエラー読んで自分で修正→再ビルド を ** BUILD SUCCEEDED ** までループ。team-lead にエラー報告投げない。\n8. ビルド成功後 reviewer に「実装完了、ビルドOK」を SendMessage\n\n## 完了時\n- TaskUpdate で Task #3 を completed\n- team-lead に SendMessage",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/粋挺/AGEYO",
+      "backendType": "tmux",
+      "isActive": false
+    },
+    {
+      "agentId": "reviewer@ageyo-multi-photo-picker",
+      "name": "reviewer",
+      "color": "purple",
+      "joinedAt": 1777404167125,
+      "tmuxPaneId": "%18",
+      "subscriptions": [],
+      "agentType": "general-purpose",
+      "model": "claude-opus-4-7",
+      "prompt": "あなたは AGEYO 写真選択複数枚化チームの reviewer です。\n\n## 担当 — Task #4（Task #3 完了後着手）\nimpl から「実装完了」SendMessage を受けたら Task #4 claim → in_progress → 全ファイル Read で検証 → ACK SendMessage。\n\n## レビュー観点\n1. ChatViewState が複数枚対応 (selectedImages: [UIImage] or 同等)\n2. PhotosPicker に maxSelectionCount: 10 + matching: .images\n3. ChatInputBar の TextField の **上** にサムネ HStack（横スクロール）が配置\n4. サムネ 80x80 + cornerRadius 12 + × ボタン\n5. × タップで個別 remove\n6. canSend = !text.isEmpty || !images.isEmpty\n7. ChatViewModel の send で複数枚処理\n8. 既存の Liquid Glass / 長押しメニュー / shadow / matchedGeometryEffect / sensoryFeedback が破壊されていない\n9. ビルド OK & 新規警告ゼロ\n\n## 沈黙運用禁止 — ACK必須\n- 全 OK: impl と team-lead に「レビュー完了、問題なし」を SendMessage\n- 問題あり: 具体的な箇所（ファイル名:行）を impl に SendMessage で伝え、修正後の再レビューも担当\n- 全 OK の場合のみ TaskUpdate で Task #4 を completed",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/粋挺/AGEYO",
+      "backendType": "tmux",
+      "isActive": false
+    }
+  ]
+}

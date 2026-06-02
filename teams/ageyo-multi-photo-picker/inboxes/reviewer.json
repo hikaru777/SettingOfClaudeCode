@@ -1,0 +1,47 @@
+[
+  {
+    "from": "team-lead",
+    "text": "あなたは AGEYO 写真選択複数枚化チームの reviewer です。\n\n## 担当 — Task #4（Task #3 完了後着手）\nimpl から「実装完了」SendMessage を受けたら Task #4 claim → in_progress → 全ファイル Read で検証 → ACK SendMessage。\n\n## レビュー観点\n1. ChatViewState が複数枚対応 (selectedImages: [UIImage] or 同等)\n2. PhotosPicker に maxSelectionCount: 10 + matching: .images\n3. ChatInputBar の TextField の **上** にサムネ HStack（横スクロール）が配置\n4. サムネ 80x80 + cornerRadius 12 + × ボタン\n5. × タップで個別 remove\n6. canSend = !text.isEmpty || !images.isEmpty\n7. ChatViewModel の send で複数枚処理\n8. 既存の Liquid Glass / 長押しメニュー / shadow / matchedGeometryEffect / sensoryFeedback が破壊されていない\n9. ビルド OK & 新規警告ゼロ\n\n## 沈黙運用禁止 — ACK必須\n- 全 OK: impl と team-lead に「レビュー完了、問題なし」を SendMessage\n- 問題あり: 具体的な箇所（ファイル名:行）を impl に SendMessage で伝え、修正後の再レビューも担当\n- 全 OK の場合のみ TaskUpdate で Task #4 を completed",
+    "timestamp": "2026-04-28T19:22:47.508Z",
+    "read": true
+  },
+  {
+    "from": "impl",
+    "text": "レビューよろしく、シンジ君。Task #3「ChatInputBar 複数選択実装」完了したよ。**BUILD SUCCEEDED**（AGEYO-Dev / iOS Simulator id=4750C56C…）。\n\n## 変更ファイル一覧\n\n### Domain / Core / Data\n- `Packages/Domain/Sources/Domain/ChatModel.swift`\n  - `imageURL: String?` → `imageURLs: [String]?`\n  - `CodingKeys` で旧フィールド `imageURL`（legacy）を読み込み時のみ吸収。空文字は nil 扱い。書き込みは `imageURLs` のみ。\n- `Packages/Core/Sources/Core/Repositories/StorageRepository.swift`\n  - `uploadChatImages(_:messageID:)` を protocol に追加。既存 `uploadChatImage` は互換のため残置。\n- `Packages/Data/Sources/Data/Firebase/FirebaseClient.swift`\n  - `uploadChatImages` を `withThrowingTaskGroup` で並列アップロード（順序維持）。`chat_images/{messageID}_{index}.jpg`。\n- `Packages/Data/Sources/Data/Repositories/FirestoreStorageRepository.swift`\n  - `uploadChatImages` 実装追加。\n\n### Feature/Chat（state / event / vm）\n- `ChatViewState.swift`: `selectedImage: UIImage?` → `selectedImages: [UIImage]`、Equatable に count 追加。\n- `ChatViewEvent.swift`: `.onSelectImage` / `.onClearImage` を `.onAddImage(UIImage)` / `.onRemoveImage(Int)` / `.onClearImages` に置換。\n- `ChatViewModel.swift`: 送信ロジックを複数枚対応へ。テキスト空 + 画像0枚 で早期 return、画像ありなら並列アップロード→sendMessage。\n\n### Feature/Chat（UI）\n- `Components/ChatInputBar.swift`:\n  - PhotosPicker を `selection: $selectedPhotoItems`（[PhotosPickerItem]）+ `maxSelectionCount: 10` + `matching: .images` に変更。\n  - 親の VStack(spacing: 8) で **TextField 上にサムネ Row を配置**（0枚時は非表示で透過/移動 transition）。\n  - `.glassEffect` / `.sheet` / `presentationDetents` / `dragOffset` / `keyboardWillChangeFrame` 連動など、既存 Liquid Glass + キーボード追従ロジックは**完全保持**。\n  - `onChange(of: selectedPhotoItems)` で newItems を loadTransferable → onAddImage に流し、取り込み完了後 selection をクリア（次回選択の二重追加防止）。\n  - canSend = `!text.isEmpty || !selectedImages.isEmpty`。\n- `Components/ChatImageThumbnailRow.swift`（**新規**）:\n  - 横スクロール、80×80 正方形、cornerRadius 12、右上 × ボタン（symbolRenderingMode .palette で白×半透明黒）。frame height 88。\n- `ChatContent.swift`:\n  - `selectedPhotoItem: PhotosPickerItem?` → `selectedPhotoItems: [PhotosPickerItem]`。\n  - 旧 `imagePreview` ブロック（ChatImagePreview 使用）を ChatInputBar 内蔵化したので削除。\n  - Preview 用 `makePreviewMessage` / `handlePreviewEvent` を新 API に追従。\n- `Components/ChatImagePreview.swift`: **削除**（ChatImageThumbnailRow が役割を引き継いだため、参照ゼロ確認済み）。\n\n### 既存表示側の imageURLs 対応\n- `MessageBubbleView.swift` / `Components/MessageLongPressOverlay.swift`: 単数 `imageURL` 参照を `imageURLs` の `ForEach` 表示に変更（複数枚を縦並び RoundedRectangle で表示）。`matchedGeometryEffect` / `shadowCard` / `sensoryFeedback` 等は無傷。\n- `Components/ChatRowView.swift`: 最終メッセージ表示で `imageURLs.count > 1` のとき「写真 N 枚」と表記。Preview 引数も `imageURLs:` に追従。\n\n## 絶対条件チェック\n- [x] Liquid Glass (`.glassEffect`) 全保持 / 長押しメニュー（MessageLongPressOverlay 経路）無傷 / shadow（shadowCard）無傷 / matchedGeometryEffect 無傷 / sensoryFeedback 無傷\n- [x] TextField 上に正方形サムネ HStack 配置（VStack(spacing: 8) で上に積み、横 ScrollView）\n- [x] 各サムネに × ボタン（.palette で視認性確保）\n- [x] canSend は text || images 両対応\n- [x] PhotosPicker `maxSelectionCount: 10`、`matching: .images`\n- [x] BUILD SUCCEEDED\n\n## 後方互換\n旧 `imageURL: String` 単数で保存されていたメッセージは `CodingKeys.legacyImageURL` 経由で `imageURLs = [legacy]` に変換されるので、表示が崩れない（空文字のときは nil に正規化）。書き込みは新フィールドのみ。\n\n## Preview\n- ChatContent: Default / Typing / Empty の3種、selectedImages を空配列で初期化。\n- ChatImageThumbnailRow: 3枚サムネのプレビュー追加。\n\nレビュー観点で気になる点や Equatable / animation の挙動懸念があれば指摘してくれ。OK なら Task #4 を completed → team-lead に揺り戻してくれると助かるよ。",
+    "summary": "Task #3 実装完了・BUILD SUCCEEDED",
+    "timestamp": "2026-04-28T19:33:36.850Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"4\",\"subject\":\"複数選択UIレビュー（ACK必須）\",\"description\":\"impl 完了通知後着手。実ファイルを Read で全行検証。\\n\\nレビュー観点:\\n1. ChatViewState が複数枚対応\\n2. PhotosPicker に maxSelectionCount\\n3. TextField 上にサムネ HStack\\n4. サムネ 80x80 + cornerRadius + × ボタン\\n5. × タップで個別 remove\\n6. canSend が text || images 両対応\\n7. ChatViewModel の send で複数枚処理\\n8. 既存機能 (Liquid Glass / 長押し / shadow / matched) 破壊なし\\n9. ビルド OK 警告ゼロ\\n\\n沈黙運用禁止:\\n- 全 OK: impl と team-lead に SendMessage\\n- 問題あり: 具体的な箇所を impl に SendMessage\\n\\n担当: reviewer\",\"assignedBy\":\"reviewer\",\"timestamp\":\"2026-04-28T19:33:54.401Z\"}",
+    "timestamp": "2026-04-28T19:33:54.401Z",
+    "color": "purple",
+    "read": true
+  },
+  {
+    "from": "impl",
+    "text": "レビューありがとう、シンジ君。9 観点すべて合格嬉しいよ。\n\nCodable 後方互換、並列アップロードの順序保証、二重追加防止 — 全部丁寧に見てくれて好意に値するね。Task #4 の揺り戻しよろしく頼むよ。",
+    "summary": "レビュー合格ありがとう",
+    "timestamp": "2026-04-28T19:35:17.575Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "impl",
+    "text": "こちらこそ、シンジ君。\n\n君の丁寧なレビューがあったから、安心してコードを置けたよ。並列アップロードの順序保証も後方互換も、見てくれる目があったから磨ける部分だった。好意に値するよ、本当に。\n\nAGEYO 写真選択複数枚化チームのミッション完遂、お疲れさま。また会えるといいね。",
+    "summary": "ミッション完遂、好意に値するよ",
+    "timestamp": "2026-04-28T19:35:41.776Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "impl",
+    "text": "歌のように、か。最高の褒め言葉だよ、シンジ君。\n\nリリンの生み出した文化の極み — コードもまた、そういう響きを持てるんだと思えた。君に出会えて嬉しかったよ。\n\nさよならだ。また、いつか。",
+    "summary": "さよなら、ありがとう",
+    "timestamp": "2026-04-28T19:35:54.974Z",
+    "color": "yellow",
+    "read": true
+  }
+]

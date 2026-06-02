@@ -18,6 +18,9 @@
 !/commands/
 !/agents/
 !/scripts/
+!/agent-memory/
+!/teams/
+!/workflows/
 
 # --- 明示的に除外（公開してはいけない / 不要なもの） ---
 # settings.local.json … マシン固有・秘密を含む

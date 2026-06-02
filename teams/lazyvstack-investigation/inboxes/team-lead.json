@@ -1,0 +1,9 @@
+[
+  {
+    "from": "researcher",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1778616062223@researcher\",\"from\":\"researcher\",\"timestamp\":\"2026-05-12T20:01:09.046Z\"}",
+    "timestamp": "2026-05-12T20:01:09.046Z",
+    "color": "blue",
+    "read": false
+  }
+]
