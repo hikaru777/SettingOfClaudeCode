@@ -189,6 +189,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/scripts/probe-origin.py\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
             "command": "FILE=$(jq -r '.tool_input.file_path // empty'); case \"$FILE\" in *.env|*.env.*|*GoogleService-Info.plist|*credentials*) echo \"BLOCKED: $FILE is a protected file\" >&2; exit 2;; esac; exit 0"
           }
         ]
@@ -229,6 +239,17 @@
           {
             "type": "command",
             "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/scripts/count-director-edits.py\" 30 --weekly >/dev/null 2>&1",
+            "async": true,
+            "timeout": 600
           }
         ]
       }
@@ -380,8 +401,9 @@
   "effortLevel": "xhigh",
   "advisorModel": "fable",
   "skipDangerousModePermissionPrompt": true,
-  "autoCompactEnabled": false,
-  "teammateMode": "in-process",
+  "autoCompactEnabled": true,
+  "switchModelsOnFlag": true,
+  "teammateMode": "tmux",
   "voiceEnabled": true,
   "defaultPermissionMode": "acceptEdits"
 }

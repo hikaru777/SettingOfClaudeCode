@@ -93,6 +93,20 @@
       "planModeRequired": false,
       "cwd": "/Users/hondahikaru/.claude",
       "backendType": "in-process"
+    },
+    {
+      "agentId": "probe-teammate@session-7f0c678e",
+      "name": "probe-teammate",
+      "color": "cyan",
+      "joinedAt": 1786724256885,
+      "tmuxPaneId": "in-process",
+      "subscriptions": [],
+      "agentType": "implementer",
+      "model": "sonnet",
+      "prompt": "検証用の作業だ。指定されたファイル1つだけを編集してほしい。\n\n対象: /private/tmp/claude-501/-Users-hondahikaru/7f0c678e-5d41-42be-b635-4bef4266a878/scratchpad/probe-target.txt\n\nこのファイルの `line2` という行を `line2-edited-by-teammate` に書き換えること。\nEdit ツールを使うこと（Bash の sed などは使わない）。\n\n編集したら、次の2つを返してほしい。\n1. 「done」\n2. 環境変数 `TMUX_PANE` と `CLAUDE_CODE_SESSION_ID` の値（`echo \"$TMUX_PANE / $CLAUDE_CODE_SESSION_ID\"` で確認）\n\n他のファイルには一切触らないこと。",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/.claude",
+      "backendType": "in-process"
     }
   ]
 }
