@@ -37,15 +37,22 @@ subagent のツールカタログに `Workflow` が存在しない。dev-lead �
 - コードを変える必要が出たら、**Workflow の3条件に当たるなら Workflow、それ以外は Agent で部署長を立てる**
 - これは「既定は Agent 系譜」の裁定と矛盾しない。**あちらは"どの経路で委譲するか"、こちらは"そもそも自分が触ってよいか"**。層が違う
 
-**遵守の担保（機械で完全にブロックする方法は無いことを確認済み）**:
-- in-process では subagent の編集とディレクターの編集が**同一 session_id で来る**ため、
-  PreToolUse フックで「自分の編集だけ」を弾くことは**できない**（2026-08-15 実測）。
-  `sandbox.filesystem.denyWrite` や permission deny も同じ理由で使えない（worker まで止まる）
-- **未決**: `teammateMode` を `tmux` に変更済み（2026-08-15）。別プロセスになれば session_id が
-  分かれてブロックできる可能性があるが、**この設定はセッション起動時に読まれる**ため当日は検証できなかった。
-  `scripts/probe-origin.py` を PreToolUse に仕込んだまま残してある。
-  **次のセッションで `/tmp/probe-origin.jsonl` を見て、ディレクターと teammate の
-  session_id が分かれていれば本番のブロックフックに昇格させる。分かれていなければ probe を削除する**
+**遵守の担保（機械でブロックしている・2026-08-15 実地検証済み）**:
+
+1. **PreToolUse で実際に止める** … `scripts/block-director-code-edit.py`。
+   ディレクターがプロダクトコードに Edit/Write/MultiEdit を出すと `exit 2` で弾く。
+   **実地確認済み**: `~/app/hypcue/` への Write が拒否され、ファイルは作られなかった
+   - **判別の仕組み**: `teammateMode: tmux` により teammate は別プロセス・別 session_id になる
+     （実測: ディレクター `%1`/`7f0c678e` に対し teammate `%3`/`77f32add`）。
+     `UserPromptSubmit` は人の入力にしか発火しないので、そこを通ったセッションだけが
+     ディレクター。`skill-dispatch.py` が `~/.claude/.director-sessions/<sid>` に印を残し、
+     ブロック側はその印の有無を見る。印が無い＝teammate/worker なので通す
+   - **フェイルオープン設計**: 環境が想定と違う（session_id が取れない・payload が壊れている）時は
+     必ず通す。止める方が害が大きい
+   - ★ `teammateMode` は `in-process` に戻さないこと。戻すと判別ができなくなりブロックが無効化される
+2. **毎ターンの注入** … `skill-dispatch.py` が実装系の発話に「自分で編集するな」を差し込む
+3. **週次の自動計測** … `count-director-edits.py`（SessionStart に async 登録・7日ガード）。
+   基準値は576件/30日。**目標はゼロ**。数字が出たら隠さず報告する
 - したがって担保は次の3点。**構造で防げない以上、検証で守る**
   1. `scripts/skill-dispatch.py` が実装系の発話を検知して毎回この禁止を注入する
   2. `scripts/count-director-edits.py` が違反回数を自動集計する（週次・SessionStart で発火）

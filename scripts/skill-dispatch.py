@@ -10,7 +10,24 @@
 パスに依存しないので Windows でもそのまま動く（python3 があれば可）。
 """
 import json
+import os
 import sys
+
+# --- ディレクター識別の印を残す ---------------------------------------------
+# UserPromptSubmit はユーザーが直接入力した時にしか発火しない。
+# teammate / subagent はユーザー入力を受け取らないので、ここを通るのは
+# 「人と対話しているセッション = ディレクター」だけ。
+# その session_id に印を付けておき、block-director-code-edit.py が参照する。
+def _mark_director() -> None:
+    sid = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    if not sid:
+        return
+    d = os.path.expanduser("~/.claude/.director-sessions")
+    try:
+        os.makedirs(d, exist_ok=True)
+        open(os.path.join(d, sid), "w").close()
+    except OSError:
+        pass
 
 # (キーワード群, 注入する一行) — 上から評価し、最初に当たったものだけを出す
 RULES = [
@@ -42,6 +59,8 @@ MAX_BYTES = 300
 
 
 def main() -> int:
+    _mark_director()
+
     try:
         payload = json.load(sys.stdin)
     except Exception:

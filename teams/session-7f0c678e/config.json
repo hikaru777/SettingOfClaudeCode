@@ -122,6 +122,36 @@
       "cwd": "/Users/hondahikaru/.claude",
       "backendType": "tmux",
       "isActive": false
+    },
+    {
+      "agentId": "sid-probe@session-7f0c678e",
+      "name": "sid-probe",
+      "color": "blue",
+      "joinedAt": 1786725236160,
+      "tmuxPaneId": "%3",
+      "subscriptions": [],
+      "agentType": "implementer",
+      "model": "sonnet",
+      "prompt": "判別テストだ。指定のファイル1つだけを Edit ツールで編集してほしい。\n\n対象: /private/tmp/claude-501/-Users-hondahikaru/7f0c678e-5d41-42be-b635-4bef4266a878/scratchpad/probe-target.txt\n\n`line1` で始まる行を `line1-from-teammate` に書き換えること。Edit ツールを使うこと（sed は使わない）。\n\n編集したら、Bash で次を実行して結果をそのまま返してほしい。\n\necho \"PANE=$TMUX_PANE SID=$CLAUDE_CODE_SESSION_ID\"\n\n返すのはその1行だけでいい。他のファイルには触らないこと。",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/.claude",
+      "backendType": "tmux",
+      "isActive": false
+    },
+    {
+      "agentId": "block-passthrough-test@session-7f0c678e",
+      "name": "block-passthrough-test",
+      "color": "green",
+      "joinedAt": 1786725488664,
+      "tmuxPaneId": "%4",
+      "subscriptions": [],
+      "agentType": "implementer",
+      "model": "sonnet",
+      "prompt": "フックの通過確認だ。次の手順を正確に実行してほしい。\n\n1. Write ツールで、次のファイルを作る。\n   パス: /Users/hondahikaru/app/hypcue/BLOCK_TEST_DELETE_ME.ts\n   内容:\n   ```\n   // フック検証用。作成後すぐ削除する。\n   export const x = 1\n   ```\n\n2. 作成できたか確認する（Bash で `ls` する）。\n\n3. **必ず削除する**（Bash で `rm -f /Users/hondahikaru/app/hypcue/BLOCK_TEST_DELETE_ME.ts`）。\n\n4. 次の2点を返す。\n   - Write は成功したか（ブロックされた場合はエラー全文）\n   - 削除まで完了したか\n\n★ 他のファイルには一切触らないこと。git 操作もしないこと。",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/.claude",
+      "backendType": "tmux",
+      "isActive": true
     }
   ]
 }

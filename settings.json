@@ -185,12 +185,13 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/scripts/probe-origin.py\"",
-            "timeout": 5
+            "command": "python3 \"$HOME/.claude/scripts/block-director-code-edit.py\"",
+            "timeout": 5,
+            "statusMessage": "編集主体を照合中"
           }
         ]
       },
