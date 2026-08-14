@@ -107,6 +107,21 @@
       "planModeRequired": false,
       "cwd": "/Users/hondahikaru/.claude",
       "backendType": "in-process"
+    },
+    {
+      "agentId": "lead-parallel-demo@session-7f0c678e",
+      "name": "lead-parallel-demo",
+      "color": "red",
+      "joinedAt": 1786724782950,
+      "tmuxPaneId": "%2",
+      "subscriptions": [],
+      "agentType": "dev-lead",
+      "model": "sonnet",
+      "prompt": "経路の実証テストだ。プロダクトのコードには一切触らないこと。\n\n## やること\n\nAgent ツールで worker を **4体、1つのメッセージの中に並べて同時に**立ててほしい。\n逐次に立てるのではなく、1回の応答で4つの Agent 呼び出しを並べること。全員に model: \"sonnet\" を明示。\n\n各 worker への指示（それぞれ別の worker に）:\n- worker1: 「ALPHA とだけ返せ。他には何も書くな。ファイル操作もするな」\n- worker2: 「BRAVO とだけ返せ。他には何も書くな。ファイル操作もするな」\n- worker3: 「CHARLIE とだけ返せ。他には何も書くな。ファイル操作もするな」\n- worker4: 「DELTA とだけ返せ。他には何も書くな。ファイル操作もするな」\n\n## 報告してほしいこと（簡潔に）\n\n1. 4体を1メッセージ内で同時に立てられたか … YES / NO\n2. 各 worker が返した文字列\n3. 各 worker の所要時間（分かる範囲で）\n4. 立てられなかった場合はエラー全文\n\n★ ファイルの作成・編集・git 操作は一切禁止。",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/.claude",
+      "backendType": "tmux",
+      "isActive": false
     }
   ]
 }
