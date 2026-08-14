@@ -105,7 +105,8 @@
 限定して使うもの … `brainstorming`（スコープ未定のアイデア段階のみ。詰まった話は `spec-lock` が正）
 
 **使わないもの** … `subagent-driven-development` / `dispatching-parallel-agents`
-（部署長 + Workflow と階層が二重になる）、`requesting-code-review`（組み込み `/code-review` が正）
+（委譲の設計はこちらの規律で決める。CLAUDE.md「既定は Agent 系譜」を参照）、
+`requesting-code-review`（組み込み `/code-review` が正）
 
 ---
 
