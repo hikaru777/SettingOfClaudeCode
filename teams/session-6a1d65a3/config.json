@@ -1,0 +1,18 @@
+{
+  "name": "session-6a1d65a3",
+  "createdAt": 1781733712040,
+  "leadAgentId": "team-lead@session-6a1d65a3",
+  "leadSessionId": "6a1d65a3-7c52-4f23-86dd-b55e7bb84db9",
+  "members": [
+    {
+      "agentId": "team-lead@session-6a1d65a3",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "joinedAt": 1781733712040,
+      "tmuxPaneId": "leader",
+      "cwd": "/Users/hondahikaru",
+      "subscriptions": [],
+      "backendType": "in-process"
+    }
+  ]
+}

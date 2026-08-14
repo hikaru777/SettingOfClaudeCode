@@ -1,7 +1,7 @@
 ---
 name: investigation-agent
 description: "Analyzes the codebase for a given ImplementationTask to identify root cause, affected areas, and safe change scope. Produces an InvestigationReport for the Patch Agent. Read-only — never modifies files."
-model: opus
+model: sonnet
 color: purple
 memory: user
 ---

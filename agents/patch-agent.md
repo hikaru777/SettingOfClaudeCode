@@ -1,7 +1,7 @@
 ---
 name: patch-agent
 description: "Applies safe, scoped code changes based on an ImplementationTask and InvestigationReport. Produces a PatchResult for the Review Agent. Stays strictly within defined scope."
-model: opus
+model: sonnet
 color: cyan
 memory: user
 ---

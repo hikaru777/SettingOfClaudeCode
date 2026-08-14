@@ -1,8 +1,10 @@
 {
   "env": {
-    "MAX_THINKING_TOKENS": "30000",
+    "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "OBSIDIAN_BRAIN_VAULT_PATH": "/Users/hondahikaru/Documents/輝/Claude Agents Brain"
+    "MAX_THINKING_TOKENS": "30000",
+    "OBSIDIAN_BRAIN_VAULT_PATH": "/Users/hondahikaru/Documents/輝/Claude Agents Brain",
+    "SECURITY_REVIEW_MODEL": "claude-sonnet-5"
   },
   "permissions": {
     "allow": [
@@ -76,37 +78,45 @@
     ]
   },
   "hooks": {
-    "UserPromptSubmit": [
+    "Notification": [
       {
-        "matcher": ".*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "node /Users/hondahikaru/app/obsidian-brain-mcp/dist/cli/brain-auto-load.js",
-            "timeout": 5000
+            "command": "osascript -e 'display notification \"入力を待っています\" with title \"Claude Code\"'"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
           }
         ]
       }
     ],
-    "PreToolUse": [
+    "PermissionRequest": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(jq -r '.tool_input.file_path // empty'); case \"$FILE\" in *.env|*.env.*|*GoogleService-Info.plist|*credentials*) echo \"BLOCKED: $FILE is a protected file\" >&2; exit 2;; esac; exit 0"
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'",
+            "timeout": 86400
           }
         ]
       }
     ],
-    "Stop": [
+    "PostCompact": [
       {
-        "matcher": ".*",
+        "matcher": "manual|auto",
         "hooks": [
           {
             "type": "command",
-            "command": "terminal-notifier -title 'Claude Code 完了' -message \"$(basename $(pwd))ですべての処理が完了しました\" -sound Glass",
-            "timeout": 5000
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
           }
         ]
       }
@@ -151,15 +161,159 @@
             "timeout": 5000
           }
         ]
-      }
-    ],
-    "Notification": [
+      },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "osascript -e 'display notification \"入力を待っています\" with title \"Claude Code\"'"
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path // empty'); case \"$FILE\" in *.env|*.env.*|*GoogleService-Info.plist|*credentials*) echo \"BLOCKED: $FILE is a protected file\" >&2; exit 2;; esac; exit 0"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/hondahikaru/.claude/hooks/block-spec-edit.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/court-repair.py",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "terminal-notifier -title 'Claude Code 完了' -message \"$(basename $(pwd))ですべての処理が完了しました\" -sound Glass",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/hondahikaru/app/obsidian-brain-mcp/dist/cli/brain-auto-load.js",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
           }
         ]
       }
@@ -167,20 +321,23 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "node $HOME/.claude/hud/omc-hud.mjs"
+    "command": "/Users/hondahikaru/.vibe-island/bin/vibe-island-statusline-chain"
   },
   "enabledPlugins": {
-    "swift-lsp@claude-plugins-official": true,
-    "firebase@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "github@claude-plugins-official": true,
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true,
+    "claude-mem@thedotmack": true,
     "context7@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
-    "chrome-devtools-mcp@claude-plugins-official": true,
+    "firebase@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "obsidian-brain@obsidian-brain": true,
+    "swift-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
     "vercel@claude-plugins-official": true,
-    "oh-my-claudecode@omc": false,
-    "claude-mem@thedotmack": true,
-    "obsidian-brain@obsidian-brain": true
+    "frontend-design@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -189,16 +346,16 @@
         "repo": "anthropics/skills"
       }
     },
+    "obsidian-brain": {
+      "source": {
+        "source": "github",
+        "repo": "hikaru777/obsidian-brain-plugin"
+      }
+    },
     "renoise-plugins-official": {
       "source": {
         "source": "github",
         "repo": "ArcoCodes/renoise-plugins-official"
-      }
-    },
-    "omc": {
-      "source": {
-        "source": "git",
-        "url": "https://github.com/Yeachan-Heo/oh-my-claudecode.git"
       }
     },
     "thedotmack": {
@@ -206,18 +363,15 @@
         "source": "github",
         "repo": "thedotmack/claude-mem"
       }
-    },
-    "obsidian-brain": {
-      "source": {
-        "source": "github",
-        "repo": "hikaru777/obsidian-brain-plugin"
-      }
     }
   },
   "language": "Japanese",
   "alwaysThinkingEnabled": true,
-  "effortLevel": "max",
-  "voiceEnabled": true,
+  "effortLevel": "xhigh",
+  "advisorModel": "fable",
   "skipDangerousModePermissionPrompt": true,
-  "defaultPermissionMode": "plan"
+  "autoCompactEnabled": false,
+  "teammateMode": "in-process",
+  "voiceEnabled": true,
+  "defaultPermissionMode": "acceptEdits"
 }

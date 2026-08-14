@@ -93,6 +93,15 @@ Runtime Blocker は WARN として最終 report に残す。
 
 ---
 
+## モデル規律（例外なし）
+
+★★★ **このスキルで立てるエージェントは planner / worker / reviewer / integrator を含めて全員 Sonnet 5** ★★★
+
+- spawn 時に **必ず `model: "sonnet"` を明示**する。親からの継承任せにしない
+- 部署長がさらに Workflow を回す場合も、全 `agent()` に `opts.model: 'sonnet'` を貼る
+- 「reviewer は判断が要るから opus」もやらない。判断基準は planner-architect が固定した契約と受け入れ条件であって、モデルの地力で埋めるものではない
+- Opus はディレクター（メインのセッション）だけ
+
 ## チーム構成
 
 ### 推奨: 10エージェント構成（中〜大規模変更）

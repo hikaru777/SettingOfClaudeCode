@@ -1,7 +1,7 @@
 ---
 name: review-agent
 description: "Evaluates whether a PatchResult satisfies the ImplementationTask and is safe for PR creation. Produces a ReviewPacket. Read-only — inspects diffs and files but never modifies code."
-model: opus
+model: sonnet
 color: red
 memory: user
 ---

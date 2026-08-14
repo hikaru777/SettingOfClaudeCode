@@ -1,7 +1,7 @@
 ---
 name: pr-agent
 description: "Converts an approved ReviewPacket into a PullRequestDraft with GitHub-facing metadata. Does not modify source code — packages the work for human review."
-model: opus
+model: sonnet
 color: blue
 memory: user
 ---

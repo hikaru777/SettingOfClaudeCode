@@ -47,6 +47,8 @@ TeamCreate(team_name: "fix-session-{YYYYMMDD-HHMM}", description: "UIBuilder fix
 
 各 `Agent` 呼び出しに `team_name` と `name` パラメータを必ず付ける。これで永続チームメイトとして join する。
 
+**モデルは全員 Sonnet 5（例外なし）**。各 `Agent` 呼び出しに `model: "sonnet"` を明示指定する。後から追加するチームメイト・reviewer も同じ。Opus は team-lead（メインのセッション）だけ。
+
 ### 4. 初期プロンプト（各チームメイトへ）
 
 ```

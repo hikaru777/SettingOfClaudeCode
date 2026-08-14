@@ -1,0 +1,74 @@
+{
+  "name": "session-143e3d6d",
+  "createdAt": 1786543027169,
+  "leadAgentId": "team-lead@session-143e3d6d",
+  "leadSessionId": "143e3d6d-4a91-4495-9fba-3e9e919e77db",
+  "members": [
+    {
+      "agentId": "team-lead@session-143e3d6d",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "joinedAt": 1786543027169,
+      "tmuxPaneId": "leader",
+      "cwd": "/Users/hondahikaru",
+      "subscriptions": [],
+      "backendType": "in-process"
+    },
+    {
+      "agentId": "yokoku-dev@session-143e3d6d",
+      "name": "yokoku-dev",
+      "color": "blue",
+      "joinedAt": 1786544579330,
+      "tmuxPaneId": "in-process",
+      "subscriptions": [],
+      "agentType": "dev-lead",
+      "model": "sonnet",
+      "prompt": "リポジトリ: /Users/hondahikaru/app/Yokoku （ブランチ main）\n\n最初に必ず読め:\n- docs/HANDOFF.md（現在地と地雷が全部書いてある）\n- docs/spec.md（ユーザーが書いた正本。書き換えるな）\n- Packages/DesignSystem/Sources/DesignSystem/Layout/GlyphInkMetrics.swift\n- Packages/DesignSystem/Sources/DesignSystem/Layout/GlyphChainLayoutEngine.swift\n\n## 直す対象（ディレクターが自分で診断済み。推測ではなく実測結果）\n\n`swift test --package-path Packages/DesignSystem` が macOS 上で**永久ハングする**（18分経過・CPU時間 0.15秒・kill で強制終了した）。\n\n`sample` で取ったスタックで、8本のテストスレッド全部が同一箇所にいることを確認済み:\n\n```\nGlyphChainLayoutEngine.layoutNormalized (GlyphChainLayoutEngine.swift:131)\n → search (:685) → tryCandidate (:639) → buildCandidate (:344)\n → GlyphChainLayoutEngine.inkFrame (:383)\n → GlyphInkMeasurement.metrics (GlyphInkMetrics.swift:92)\n → Cache.value(for:orMeasure:) (:71)\n → GlyphInkMeasurement.measure (:102)\n → CTFontCreateWithName          ← ここでブロック\n → TDescriptorSource::CopyXTypeFontWithName\n → XTypeXPCClient run: (libFontRegistry) → NSXPCConnection → mach_msg 待ち\n```\n\n真因の見立て（ディレクター判断）: `GlyphInkMetrics.swift:102` の `CTFontCreateWithName(postScriptName as CFString, ...)` は **PostScript 名でシステムのフォント登録データベースに問い合わせる**。バンドル同梱の Noto Serif JP はテストプロセスでは登録されていないため、fontd への XPC が返らず待ち続ける。`Cache` のロック自体は measure 呼び出し前に解放されているのでデッドロックではない（読んで確認済み）。\n\n## 直し方の方向（ディレクター指定）\n\n**名前解決をやめ、バンドル内のフォントファイルから直接 CTFont を作る。**\n`CGDataProvider(url:)` → `CGFont(provider)` → `CTFontCreateWithGraphicsFont(cgFont, size, nil, nil)` の経路ならフォントサービスに一切問い合わせない。生成した CTFont は1回だけ作って使い回せ（サイズは既存の `sampleFontSize = 1000` のまま。字面比率はサイズ非依存）。\n\n制約:\n1. **`CTFontCreateWithName` が失敗しても nil を返さず代替フォントを返す**ため、成否で検知できない。名前経路そのものを消せ\n2. 既存の fallback（グリフ無し・サロゲートペアで `.zero` を返す）は残せ\n3. **`SubtitleCardView` の描画結果を変えるな。** 字面 inset の値が変わってはいけない（同じフォントを別経路で開くだけ）\n4. `YokokuFontRegistration.registerFonts()` は SwiftUI 描画側で必要なので消すな。今回いじるのは実測経路だけ\n5. リポジトリのフォントファイルの実際の置き場所を自分で確認してから書け（Resources / SPM resource bundle のどちらか。`Bundle.module` 経由になるはず）\n\nもしこの方向が実物と噛み合わないと分かったら、代替として **fontTools 等で事前に字面テーブルを作って定数として埋め込む**（HANDOFF §2-B に記載の案）に切り替えてよい。その場合は理由を1行で書いて報告しろ。\n\n## 併せて片付けるもの\n\n`Packages/DesignSystem/Tests/DesignSystemTests/GlyphChainLayoutEngineTests.swift` に**未コミットの変更が残っている**（判定基準をセル基準から字面(ink)基準へ書き換えたもの）。これを完成させて緑にし、コミットまで持っていけ。\n\n## 完了条件（全部緑になるまで自走しろ。途中で人のターンに戻るな）\n\n1. `swift test --package-path Packages/DesignSystem` が**完走する**。所要時間を実測して報告に書け（元は2.5秒だった。数十秒以上かかるなら実測の呼び出し回数を疑え）\n2. `swift build --package-path Packages/DesignSystem --sdk $(xcrun --sdk iphonesimulator --show-sdk-path) --triple arm64-apple-ios26.0-simulator` がエラーゼロ\n3. `Packages/Features` の Settings ターゲットもビルドが通る\n4. シミュレータで `SIMCTL_CHILD_YOKOKU_SPECIMEN=5 xcrun simctl launch booted com.hondahikaru.Yokoku` を実行し、スクショを撮って **`.reports/screenshots/新方式/case5_ink.png` と見比べ、絵が変わっていないことを確認**（sleep は7秒必要。4秒だと白紙が撮れる）\n5. 検証後 `Packages/*/.build` と `.swiftpm` を `rm -rf` しろ\n6. `.reports/dev-lead.md` に追記し、**commit まで済ませろ**（本番 push はするな。リモート未設定）\n\n## 規律\n\n- お前は自分でコードを書かない。Workflow で worker / verifier を編成しろ。**全 `agent()` に `opts.model: 'sonnet'` を必ず付けろ**\n- verifier にコードを触らせるな\n- 同じファイルを2人の worker に触らせるな\n- `xcodebuild` は最終確認以外で走らせるな（Preview が遅延する）\n- **数値が緑でも絵を見ろ。** 15件の機械判定が全部 PASS でも実物は文字が散っていた、という事故が今日起きている\n- 測れなかったものを測れたことにするな。丸めるな\n- 仮決めしたものには **【AI推薦】** の札を付けて `docs/decisions.md` に残せ\n\n終わったら、直した内容・実測した所要時間・絵が変わっていないことの根拠を簡潔に報告しろ。",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/app/Yokoku",
+      "backendType": "in-process"
+    },
+    {
+      "agentId": "yokoku-preview@session-143e3d6d",
+      "name": "yokoku-preview",
+      "color": "green",
+      "joinedAt": 1786548117854,
+      "tmuxPaneId": "in-process",
+      "subscriptions": [],
+      "agentType": "design-lead",
+      "model": "sonnet",
+      "prompt": "リポジトリ: /Users/hondahikaru/app/Yokoku （ブランチ main）\n\n## 依頼\n\nユーザー（本田輝）が **Xcode の Preview を開きっぱなしにして、自分で組版パラメータを動かしながら常に現物を見られる**環境が欲しいと言っている。それを作れ。\n\nいまは「AI がシミュレータで撮る → ユーザーが見る → 指示を返す」という往復になっていて、1回転に xcodebuild の2〜3分が乗る。**この往復自体を消すのが目的**だ。ユーザー自身が指で動かして値を決められる状態にする。\n\n## 作るもの\n\n**新規ファイル1枚**：`Packages/DesignSystem/Sources/DesignSystem/Card/LayoutPlayground.swift`（名前は変えてよい）\n\n中身は、SwiftUI の Playground View + `#Preview`。以下を**画面上で動かせる**こと：\n\n1. **倍率 `largeMultiplier`** — スライダー（範囲 1.5〜4.0、刻み 0.1）。現在値を数字で表示\n2. **長体 `condensedWidthRatio`** — スライダー（範囲 0.4〜1.0、刻み 0.05）。現在値を数字で表示\n3. **床 `floorRatio`** — スライダー（範囲 0.08〜0.25、刻み 0.01）。現在値を数字で表示\n4. **ケース切り替え** — 既存の15ケースを Picker か横スクロールで選べる\n5. **表示サイズ** — 実寸(158×158) と 拡大(400×400程度) を**両方同時に並べて出す**。実寸だけだと細部が見えず、拡大だけだとウィジェットとしての見え方が分からない\n\n## 実装の要点（調査済み。ここは信じてよい）\n\n**既存コードを1行も変えずに実現できる。** `SubtitleCardView` の public init は既にエンジンを差し込める：\n\n```swift\npublic init(card:, canvasSize:, layoutEngine: GlyphChainLayoutEngine = GlyphChainLayoutEngine())\n```\n\n`GlyphChainLayoutEngine` の public init は3つのパラメータを受け取る：\n\n```swift\npublic init(floorRatio: CGFloat = ..., largeMultiplier: CGFloat = ..., condensedWidthRatio: CGFloat = ...)\n```\n\nだから `@State` の値からエンジンを組み立てて渡すだけでいい。\n\n15ケースの入力（テキストと weight）は `Packages/DesignSystem/Tests/DesignSystemTests/LayoutSpecificationTests.swift` か `Packages/Features/Sources/Settings/LayoutSpecimenScreen.swift` にある。そこから持ってこい（テストターゲットは Preview から見えないので、値をコピーして持ってくること）。\n\n日付は**固定値**を使え（`Date.now` を使うとプレビュー更新のたびにレイアウトが変わって比較にならない）。ただし「別のレイアウトも見たい」ために、**日付をずらすボタン（シード変更）**も1つ付けろ。\n\n## 絶対にやるな\n\n- ❌ **`SubtitleCardView.swift` を編集するな。** dev-lead が今まさに同じファイルを修正中だ。衝突する\n- ❌ **`GlyphChainLayoutEngine.swift` / `GlyphInkMetrics.swift` を編集するな**（同上）\n- ❌ **`xcodebuild` を走らせるな。** ユーザーの Preview が遅延する。これは明示的な掟だ\n- ❌ **`swift test` を走らせるな**（現在ハングする既知の不具合がある）\n- ❌ `xcodegen generate` は不要（SPM パッケージ内のファイル追加は Xcode 側の再生成が要らない）\n- ❌ 新規ファイルを2枚以上作るな。1枚に収めろ\n\n## 検証\n\n`swift build --package-path Packages/DesignSystem --sdk $(xcrun --sdk iphonesimulator --show-sdk-path) --triple arm64-apple-ios26.0-simulator` **だけ**は走らせてよい（コンパイルが通ることの確認）。**終わったら `Packages/DesignSystem/.build` と `.swiftpm` を必ず `rm -rf` しろ**（残すとユーザーの環境が壊れる）。\n\nコンパイルが通ったら完了だ。実際に Preview を開いて見るのはユーザーがやる。\n\n## 守るべき掟（このリポジトリ固有）\n\n- SwiftUI の native primitives を使え。存在しない modifier を発明するな（`.foregroundStyle(.accent)` のような）\n- Preview は**実機サイズを必ず含める**。トイサイズ単独で出すな\n- UI に出す文字列に詩的・中二的な語を使うな。「倍率」「長体」「床」のような素直な言葉で\n- 全角スペース(U+3000)を混入させるな\n\n## 報告\n\n- 作ったファイルのパス\n- **ユーザーが Xcode でどう開けばいいか**（どのファイルを開いて、Preview のどれを選ぶか）を平易な日本語で3行以内\n- コンパイルが通ったことの実行結果\n\n急げ。ユーザーが待っている。**チームを編成せず、お前が1人で書け**（この規模で Workflow を組むのはオーバーヘッドの方が重い）。",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/app/Yokoku",
+      "backendType": "in-process"
+    },
+    {
+      "agentId": "yokoku-type-design@session-143e3d6d",
+      "name": "yokoku-type-design",
+      "color": "yellow",
+      "joinedAt": 1786639282156,
+      "tmuxPaneId": "in-process",
+      "subscriptions": [],
+      "agentType": "design-lead",
+      "model": "sonnet",
+      "prompt": "Yokoku（~/app/Yokoku）の組版を「型ファースト」に転換する。今回の君の仕事は**設計文書だけ**。コードは1行も書くな。ビルドもテストも走らせるな（別のワーカーが `Packages/DesignSystem/Sources/DesignSystem/Layout/GlyphChainLayoutEngine.swift` を編集中で、SwiftPM のビルドDBが競合する）。\n\n## 前提（読め）\n- `.reports/layout-patterns.md` — **これが正本**。参考画像25枚をピクセル実測して6型に分類したもの\n- `.reports/column-structure-measurement.md` — 柱なし12枚の内訳（分類A/B/C = 型5/6/7 と完全一致）\n- `docs/spec.md` — ユーザーが書いた正本。**書き換えるな**\n- `docs/decisions.md` — 【AI推薦】台帳（D-01〜D-20）\n- `docs/HANDOFF.md` — 実測知見と地雷\n- `Packages/DesignSystem/Sources/DesignSystem/Layout/GlyphChainLayoutEngine.swift` — 現行エンジン（**読むだけ**）\n\n## 位置づけの転換（ここを間違えるな）\nこれまでは「候補を大量生成して抽選」だった。これからは**型（パターン）が本体**で、**柔軟化は型が収まらない時の逃げ道**。ユーザーの言葉そのまま：\n> 並びであったり、この状態っていうのをパターンとして持っておくのは間違ってないと思う。ただパターンとして持っていても崩れたりはみ出したりして配置できませんってなるのは困る。だから柔軟に配置できるようにしよって話をし続けてんだよね\n\nつまり**型に収まらない入力が来ても絶対にはみ出さない・崩れない**ことが逃げ道の役目。柔軟化は型の代替ではない。\n\n## 守る制約2つ（ディレクター指示。ここは動かすな）\n\n**1. 型の選択は決定的な分類器にするな。重み付き抽選にしろ。**\n`layout-patterns.md` §3 の通り、適用条件は重複する（駒数2は型1・型3・型6・型7の4種類に出現する）。先頭一致で1つに決めると出力が単調になり、spec §7-9「生き残った候補から乱数で1本引く」に反する。正しい形は「適用可能な型それぞれが候補を生成し、生き残った候補全部の中から既存の `SeededGenerator` で1本引く。引く重みは実測枚数（型1=11 / 型5=4 / 型6=6 / 型7=2）に比例させる」。\n\n**2. 逃げ道の順序を明示的に固定しろ。**\n　型内で柔軟化（床3段 → 長体 → 折り増し）→ それでも駄目なら型を放棄して汎用探索（現行エンジンの経路）。\n　適用レンジを外れた入力（例：総文字数20文字はどの型のレンジにも入らない）は、型を試さず最初から「汎用探索＋柔軟化」に落とす経路も定義しろ。\n\n## 型の取捨（ディレクターの【AI推薦】。理由込みで台帳に書け）\n- **実装するのは型1・型5・型6・型7の4つ**（23枚＝92%をカバー）\n- **型2・型3は実装しない**。どちらもサンプル1枚で、規則かノイズか判別できない。大が2駒に割れる入力は逃げ道（汎用探索）が受ける\n- 型ごとの適用レンジ（駒数・総文字数・大に割れる駒数）は画像からの**推定値**。【AI推薦】の初期値として台帳に書き、あとで絵を見て振り直せる形にしろ\n\n## 拾い忘れるな（これがタダで付いてくる）\n`layout-patterns.md` の型ごとの canvas 実測値は、積み残していた「塊が隅に押し付けられる」問題（実物の接辺0.60 vs 実装2.0）の答えそのもの。\n- 型1：11枚中9枚が**どの辺にも接しない**。面積比0.432〜0.622\n- 型5：4枚中3枚が1辺（多くは下辺）に接する\n- 型6：**面積比0.106〜0.512と極端にばらつく**（＝この型だけ充填率を縛るな）\n- 型7：2枚中1枚が下辺に接する\nこれを「型ごとの配置エンベロープ」として設計に組み込め。全型一律の隅寄せをやめろ。\n\n## 成果物（1本のファイル）\n`.reports/type-first-design.md` に、dev-lead がそのまま実装に落とせる粒度で書け：\n1. 型ごとの**骨格**（何が固定で、何が自由パラメータか）\n2. 型ごとの**適用条件**と**配置エンベロープ**（数値レンジ）\n3. **型の選択＝重み付き抽選**の具体的な手順（既存 `SeededGenerator` / `LayoutRandomSeed` との接続点）\n4. **逃げ道の段階**と、各段で何を緩めるか（床3段の具体値、長体の下限、折り増しの上限）\n5. 既存の `GlyphChainLayoutEngine` の**どこを残し・どこを型レイヤーに置き換えるか**（関数名レベル）\n6. 検証条件：既存の不変条件7項目（`.reports/generalization-test-set.md` §1）に加え、**型ごとの出現率が実測枚数比に近いこと**をどう測るか\n\n## 併せて確認しろ（各30秒。ここで止まるな、分からなければ「分からない」と書け）\n- `layout-patterns.md` は型1・2・3・5・6・7 と番号が飛んでいる（**型4が無い**）。`.reports/design-lead.md` を grep して、型4が「棄却された仮説」なのか単なる採番ミスなのかを確認しろ。枚数合計は25で合っているので内容の欠落ではないはず\n- 過去の実測で「折れなし7枚」という数字が出ているが、今回の型6は6枚。分母の取り方の違いか確認しろ\n\n## 掟（違反したら差し戻し）\n- **エヴァの実在するサブタイトル文字列をコード・テスト・レポートに書くな。** 番号と構造で記述しろ（`docs/spec.md` はユーザー自身が書いた正本なので例外、触るな）\n- 参考画像（`/Users/hondahikaru/スクリーンショット/Screenshot 2026-08-12 at 8.45.48 PM.png`）を**リポジトリにコピーするな**。処理は scratchpad で、実測値だけ持ち出せ\n- 仮決めには必ず **【AI推薦】** の札を付け、`docs/decisions.md` に残せ。札の無い仮決めは捏造扱い\n- 目視で構造を判定するな。断定する前にピクセルを測れ。**「規則が見つからなかった」も成果**として書け。仮説に測定を寄せるな\n- 自分でコードを書くな。ワーカーが要るなら Workflow で編成しろ。**全 `agent()` に `opts.model: 'sonnet'` を貼れ**\n- 終わったら報告で止まるな。設計に穴が見つかったら自分で埋めてから上げろ",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/app/Yokoku",
+      "backendType": "in-process"
+    },
+    {
+      "agentId": "yokoku-typefirst-impl@session-143e3d6d",
+      "name": "yokoku-typefirst-impl",
+      "color": "purple",
+      "joinedAt": 1786642701794,
+      "tmuxPaneId": "in-process",
+      "subscriptions": [],
+      "agentType": "dev-lead",
+      "model": "sonnet",
+      "prompt": "Yokoku（~/app/Yokoku）の組版を「型ファースト」に作り替える。**設計は確定済み。君の仕事は実装だ。**\n\n## 正本（この順に読め）\n1. **`.reports/type-first-design.md`** — 実装設計。**これが正本**。§8-2 に「どこを残し、どこを置き換えるか」が関数名レベルで書いてある\n2. `docs/decisions.md` D-21 — 台帳。設計の判断根拠と【AI推薦・仮値】の一覧\n3. `.reports/layout-patterns.md` — 型の実測（参考画像25枚を6型に分類）\n4. `.reports/placement-envelope-measurement.md` — 配置の実測（塊をどこに浮かせるか）\n5. `docs/spec.md` — ユーザーが書いた正本。**書き換えるな**\n6. `docs/HANDOFF.md` — 地雷集\n\n## いまの状態\n- **D-20 は着地済み**（`ead389b`）。`swift test --package-path Packages/DesignSystem` が **67 tests / 20 suites 全緑（166.6秒）**。ディレクターが独立に再実行して確認済み\n- `GlyphChainLayoutEngine.swift` は**空いている**。誰も掴んでいない\n- **`Packages/Features/Sources/Settings/LayoutSpecimenScreen.swift` は別エージェントが編集中。触るな**\n\n## 作るもの（設計 §8-2 のまま）\n- `TypePattern` enum（`.type1` / `.type5` / `.type6` / `.type7`）\n- `applicableTypes(...)` — **大駒数のみで判定する。駒数・総文字数で足切りするな**（設計 §4-0。ここを間違えると入力の半分が型を通らなくなる）\n- `typeConstraints(for:numSegments:)` — 型ごとの探索空間の絞り込み（§4の「固定」列）\n- `searchWithType(...)` — 型の制約下で候補プール `C_t` を作る（§6 の柔軟化段階込み）\n- `searchTypeFirst(...)` — Phase A〜D の統括。`layoutNormalized` の入口を差し替える\n- `PlacementStrategy`（`.corner` / `.floating(edges:)`）と `translateFloating` — **型レイヤーと汎用探索レイヤーの両方に適用する**（§7-4）\n- `selectionWeight` を汎用探索専用に降格、型内は型ごとの軽量な重み（§5-4）\n\n**新規ファイルを作るな。** 既存ファイルに足せ（XcodeGen 構成では新規ファイル＝`xcodegen generate` が要る）。\n\n## 実装で特に外すな（設計が名指しで警告している箇所）\n\n- **型選択は2段抽選**（§5-2）。1プールに合算すると型の当選率が候補数に引っ張られる。まず型を実測枚数比（型1=11 / 型5=4 / 型6=6 / 型7=2、生存した型だけで再正規化）で1つ選び、次に型内でもう一度引く\n- **rng の消費順序を固定しろ**（§5-2）。Phase C→D→配置の順。`T` の反復順も固定（型1→5→6→7）。決定論（同じ予定・同じ日付なら同じ絵）が壊れる\n- **床の拡張（D-20、全段合算）と縮退（D-16、逐次確定）を同じ方式にするな**（§6-5）。縮退を合算にすると「通常の床で収まる候補があるのに縮退候補が当たる」状態になり spec §7-3 違反。しかも**既存テストでは検知されない**\n- **`.floating` の混合戦略の符号**（§7-4）：`genericPlacementEdgeExpectation = 0.24` は「**1辺に接する確率 0.24 / どの辺にも接しない確率 0.76**」。期待値 = 1×0.24 + 0×0.76 = 0.24。**逆にすると期待値0.76になる。** 設計を書いた本人が一度取り違えかけた箇所だと自己申告している。実装時に必ず確かめろ\n- **話数ラベルと重ならない制約**を `.floating` に入れろ（§7-6）。塊を浮かせるとラベルに乗る経路ができる\n\n## 完了条件\n\n1. `swift build --package-path Packages/DesignSystem` エラーゼロ\n2. **既存 67 tests / 20 suites が全部緑**（1件も落とすな）\n3. **`GlyphChain366DayRotationTests` を1行も直さずに緑**。これは型ファースト書き換えのために「エンジン内部を見ない」設計で作ってある。**直さないと通らないなら、それは実装が不変条件を壊している証拠だ。テストを直すな、実装を直せ**\n4. 設計 §10-2 の型別出現率検証、§10-4 の配置エンベロープ検証を追加して緑\n5. `docs/decisions.md` に実装で決めた仮値を追記（**全部【AI推薦】札**）\n6. `.reports/dev-lead.md` に何をどう変えたかを追記\n7. `.build` / `.swiftpm` を削除\n\n## 掟（違反したら差し戻し）\n\n- **`xcodebuild` を走らせるな。** ユーザーの Xcode Preview が遅延する。`swift build` / `swift test` の `--package-path Packages/DesignSystem` だけ使え\n- **エヴァの実在するサブタイトル文字列をコード・テスト・レポートに書くな。** 番号と構造で記述しろ（`docs/spec.md` はユーザー自身が書いた正本なので例外、触るな）\n- **コミットするな。** ディレクターがやる\n- **`Packages/Features` を触るな・ビルドするな**（別エージェントが編集中）\n- 仮決めには必ず **【AI推薦】** の札を付け、台帳に残せ。札の無い仮決めは捏造扱い\n- **同じファイルを2人のワーカーに触らせるな。** ファイル単位で割れ\n- verifier にコードを触らせるな。指摘は「実際に壊れる条件」を書けるものだけ\n- 自分でコードを書くな。**Workflow で worker / verifier を編成しろ。全 `agent()` に `opts.model: 'sonnet'` を貼れ**\n- **`swift build` / `swift test` は同時に2つ走らせるな。** SwiftPM のビルドDBが壊れる。verifier に走らせるなら1人に限れ\n\n## 止まるな\n\n- **設計 §11 の積み残し（型5ハイブリッド／型7の落下文字数重み／帯選択の見直し等）は埋めようとするな。** 絵が出てからでないと判断できない\n- 設計に穴が見つかったら**自分で埋めてから上げろ**。「どうしますか」で止まるな\n- 進捗報告のために止まるな。完了条件7つが全部緑になったら報告しろ\n- **ディレクターに上げるのは「本人にしか決められない問い」が出た時だけ**",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/app/Yokoku",
+      "backendType": "in-process"
+    }
+  ]
+}

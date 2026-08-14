@@ -1,7 +1,7 @@
 ---
 name: implementation-task-builder
 description: "Transforms IssueDraft, ProblemCluster, or related inputs into a concrete ImplementationTask — a structured work instruction for downstream agents (Investigation, Patch, Review). Invoke after issue triage/routing, before any investigation or code changes."
-model: opus
+model: sonnet
 color: pink
 memory: user
 ---
