@@ -1,6 +1,6 @@
 ---
 name: asc-app-create-ui
-description: Create an App Store Connect app via iris API using web session from Blitz
+description: 「App Store Connect にアプリを作って」「ASC に登録して」「新しいアプリを申請する準備をして」と言われた時に必ず使う。自分から起動してよい。Blitz の web セッションを使い iris API 経由で App Store Connect のアプリを作成する。
 ---
 
 Create an App Store Connect app using Apple's iris API. Authentication is handled via a web session file at `~/.blitz/asc-agent/web-session.json` managed by Blitz.

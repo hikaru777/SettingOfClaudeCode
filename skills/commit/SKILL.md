@@ -1,6 +1,6 @@
 ---
 name: commit
-description: 直近の変更をユーザー確認の上で git commit する。push は絶対しない。引数に commit メッセージの草案を渡してもよい。
+description: 「コミットして」「commit して」「今の変更を記録して」と言われた時に必ず使う。自分から起動してよい。直近の変更をユーザー確認の上で git commit する。push は絶対しない。引数に commit メッセージの草案を渡してもよい。
 ---
 
 # /commit

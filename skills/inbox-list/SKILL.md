@@ -1,6 +1,6 @@
 ---
 name: inbox-list
-description: Claude Inbox に溜まっているタスクの一覧を表示する。`/inbox` (引数なし) と同等だが明示的に呼ぶ用。
+description: 「何が溜まってる？」「残タスク見せて」と聞かれた時に使う。自分から起動してよい。Claude Inbox に溜まっているタスクの一覧を表示する。`/inbox` (引数なし) と同等だが明示的に呼ぶ用。
 ---
 
 # /inbox-list

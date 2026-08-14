@@ -1,6 +1,6 @@
 ---
 name: preview-expand
-description: 指定された SwiftUI View ファイルの Preview を、典型的な状態を網羅するバリエーションに拡張する。引数にファイルの絶対パスを渡す。
+description: SwiftUI の View を書いた直後、または「Preview を足して」「状態を網羅して」「empty/loading/error も見たい」と言われた時に必ず使う。自分から起動してよい。指定された SwiftUI View ファイルの Preview を、典型的な状態を網羅するバリエーションに拡張する。引数にファイルの絶対パスを渡す。
 ---
 
 # /preview-expand
