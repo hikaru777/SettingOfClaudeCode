@@ -159,6 +159,15 @@
 - **全角空白 (U+3000)**: 日本語入力経由で混入することがある。原因不明の parse error は U+3000 を疑え → `grep -rn $'\xe3\x80\x80' .` で検出
 - **`find` は必ず `.` 起点**: `find /` は禁止。システム巡回事故を防ぐため常に相対パスまたは具体パス起点で実行
 
+## 繰り返している失敗（2026-08-15 実測・30日で527件の失敗を分類して抽出）
+
+- **`grep --include=*.swift` は zsh が glob 展開して no matches**: 必ずクォートする → `--include='*.swift'`（30日で4回）
+- **git の `index.lock: File exists`**: 並行 worker が同じリポジトリに同時に git を打っている。**ファイル単位で割るだけでなく、git 操作はリポジトリ単位で直列化する**（30日で4回）
+- **エージェント定義は `~/.claude/agents/` にある**: リポジトリ内の `.claude/agents/` を相対パスで探すな。存在しない（30日で10回、nib-lead.md で発生）
+- **`for` ループの2分タイムアウト**: 長引くと分かっている処理は Bash の `timeout` を延ばすか `run_in_background` に倒す（30日で8回）
+- **`xcode-select -p` 等のツールチェーン探索が毎回2分タイムアウト**: 結果を使い回す（30日で5回）
+- **`ls ~/app/*athom*` 型の複合コマンドは glob 空振りで exit 1 になる**: 失敗ではなく「無いことの確認」。ノイズを消すなら `|| true` か単発 `find` に寄せる（30日で17回・失敗分類の最多）
+
 # iOS 開発（要点のみ。詳細は @docs/ios-template.md）
 - XcodeGen + SPM パッケージ構成（Core/Domain/Data/DesignSystem/Features）
 - xcodeproj は XcodeGen で生成。手動編集禁止。.gitignore に追加
