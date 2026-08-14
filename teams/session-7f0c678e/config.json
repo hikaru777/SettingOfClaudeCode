@@ -65,6 +65,20 @@
       "planModeRequired": false,
       "cwd": "/Users/hondahikaru",
       "backendType": "in-process"
+    },
+    {
+      "agentId": "wf-capability-test@session-7f0c678e",
+      "name": "wf-capability-test",
+      "color": "orange",
+      "joinedAt": 1786722562892,
+      "tmuxPaneId": "in-process",
+      "subscriptions": [],
+      "agentType": "dev-lead",
+      "model": "sonnet",
+      "prompt": "これは能力検証だけのタスクだ。プロダクトのコードには一切触らないこと。\n\n## 調べたいこと\n\n部署長（あなた）が Workflow ツールを実際に起動できるのか。\n実測では直近30日で Workflow の起動146回が全てディレクター（主スレッド）発で、\n部署長からの起動は0件だった。これが「権限・仕様上できない」のか\n「できるのにやっていないだけ」なのかを確定させたい。\n\n## やること\n\nWorkflow ツールで、以下の最小のワークフローを1本だけ実行してほしい。\n\n```js\nexport const meta = {\n  name: 'capability-probe',\n  description: '部署長が Workflow を起動できるかの検証',\n  phases: [{ title: 'Probe' }],\n}\nphase('Probe')\nconst results = await parallel([\n  () => agent('「A」とだけ返せ。他には何も書くな。', {label: 'probe-a', model: 'sonnet'}),\n  () => agent('「B」とだけ返せ。他には何も書くな。', {label: 'probe-b', model: 'sonnet'}),\n])\nreturn { results }\n```\n\n## 返してほしいもの\n\n次の3つだけを簡潔に返すこと。長い報告は要らない。\n\n1. **起動できたか** … YES / NO\n2. **NO の場合** … 返ってきたエラーメッセージの全文（要約せず原文のまま）\n3. **YES の場合** … ワークフローの戻り値（A と B が返ってきたか）\n\nもし Workflow ツールがそもそもあなたのツール一覧に存在しない場合は、\n「Workflow ツールが一覧に無い」と明記してほしい。\n\n★ 実装作業は禁止。ファイルの作成・編集をしないこと。",
+      "planModeRequired": false,
+      "cwd": "/Users/hondahikaru/app/hypcue",
+      "backendType": "in-process"
     }
   ]
 }

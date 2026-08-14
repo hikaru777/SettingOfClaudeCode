@@ -43,7 +43,8 @@
 | 状況 | 使うもの |
 |---|---|
 | **UI を新規に書く・作り直す** | `frontend-design`（プラグイン。AI っぽい既視感を避ける） |
-| ブラウザで実際の描画を確認する・操作する | chrome-devtools（MCP。2,072回/30日 稼働中の主力） |
+| ブラウザで実際の描画を確認する・操作する（**手元の dev サーバー / localhost**） | chrome-devtools（MCP。2,072回/30日 稼働中の主力） |
+| **WebSearch が届かない公開サイトを直接見に行く / JS レンダリングが要るページを読む / 本番サイトを監視する** | `kitesurf`（MCP。Cloudflare 上のクラウドブラウザ。**localhost には届かない**ので手元の dev サーバー検証には使えない） |
 | Next.js / Vercel 全般 | `vercel:nextjs` ほか vercel プラグインの約29スキル |
 | ライブラリの最新 API を書く | `context7`（MCP。学習データが古い前提で必ず引く） |
 | LCP・パフォーマンス改善 | `chrome-devtools-mcp:debug-optimize-lcp` |
