@@ -151,7 +151,7 @@
       "planModeRequired": false,
       "cwd": "/Users/hondahikaru/.claude",
       "backendType": "tmux",
-      "isActive": true
+      "isActive": false
     }
   ]
 }

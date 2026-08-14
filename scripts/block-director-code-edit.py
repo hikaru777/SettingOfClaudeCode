@@ -22,8 +22,22 @@ CLAUDE.md「触ってよい物の線引き」の機械的な強制。
 import json
 import os
 import sys
+import time
 
 MARK_DIR = os.path.expanduser("~/.claude/.director-sessions")
+METRICS = os.path.expanduser("~/.claude/.metrics")
+
+
+def log(kind: str, **fields) -> None:
+    """運用指標を記録する。ops-report.py が読む。失敗しても本処理は止めない。"""
+    try:
+        os.makedirs(METRICS, exist_ok=True)
+        rec = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "kind": kind}
+        rec.update(fields)
+        with open(os.path.join(METRICS, "ops.jsonl"), "a") as fh:
+            fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 ALLOWED_SUFFIX = (".md", ".txt", ".log", ".jsonl")
 ALLOWED_SUBSTR = (
@@ -76,8 +90,10 @@ def main() -> int:
         return 0
 
     if not is_director():
+        log("delegated_edit", path=path, tool=payload.get("tool_name"))
         return 0  # teammate / worker の編集は通す
 
+    log("block", path=path, tool=payload.get("tool_name"))
     print(MESSAGE.format(path=path), file=sys.stderr)
     return 2  # exit 2 = ブロック
 

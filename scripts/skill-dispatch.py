@@ -12,6 +12,21 @@
 import json
 import os
 import sys
+import time
+
+METRICS = os.path.expanduser("~/.claude/.metrics")
+
+
+def _log(kind: str, **fields) -> None:
+    """運用指標を記録する。ops-report.py が読む。失敗しても本処理は止めない。"""
+    try:
+        os.makedirs(METRICS, exist_ok=True)
+        rec = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "kind": kind}
+        rec.update(fields)
+        with open(os.path.join(METRICS, "ops.jsonl"), "a") as fh:
+            fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 # --- ディレクター識別の印を残す ---------------------------------------------
 # UserPromptSubmit はユーザーが直接入力した時にしか発火しない。
@@ -71,13 +86,21 @@ def main() -> int:
         return 0
 
     line = None
+    hit = None
     for keywords, message in RULES:
-        if any(k in prompt for k in keywords):
-            line = message
+        for k in keywords:
+            if k in prompt:
+                line, hit = message, k
+                break
+        if line:
             break
 
     if line is None:
+        _log("no_dispatch", head=prompt[:50])
         return 0
+
+    # 誤検知率をあとで測れるように、当たった語とプロンプト冒頭を残す
+    _log("dispatch", keyword=hit, rule=line[:24], head=prompt[:50])
 
     context = "[SKILL-DISPATCH] " + line
     while len(context.encode("utf-8")) > MAX_BYTES:
