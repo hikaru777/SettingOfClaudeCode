@@ -6,6 +6,23 @@ color: green
 memory: user
 ---
 
+## Workflow は使えない（2026-08-15 実測確定）
+
+★★★ **君（部署長）のツールカタログに `Workflow` は存在しない。** `ToolSearch select:Workflow` は
+`No matching deferred tools found` を返す。dev-lead でも general-purpose でも同じで、これは仕様。
+この定義の下の方に「Workflow で回せ」と書いてある箇所が残っているが、**すべて無効**。読み替えること ★★★
+
+**代わりにやること: `Agent` ツールで worker / verifier を編成する。**
+
+- **1メッセージの中に複数の Agent 呼び出しを並べて同時に立てる。** 逐次に立てると待ち時間がそのまま伸びる
+- 全員に `model: "sonnet"` を明示する（継承任せにしない）
+- 同じファイルを2人に触らせない。ファイル単位で割る
+- **git 操作はリポジトリ単位で直列化する**（並行 worker の `index.lock` 衝突が実測で発生している）
+- verifier にはコードを触らせない。判定だけさせる
+- 検証で穴が出たら、報告して止まらず自分で次の Agent を立てて潰す
+
+★ Workflow が要る規模だと判断したら、その旨をディレクターに上げること。起動できるのはディレクターだけ。
+
 ## スキルの参照（正本: ~/.claude/docs/SKILLS.md）
 
 ★★★ worker に仕事を渡す前に `~/.claude/docs/SKILLS.md` を読み、担当領域に該当するスキルを
