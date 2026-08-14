@@ -28,6 +28,9 @@ PROJECTS = os.path.join(HOME, ".claude/projects")
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 EXCLUDE_DIRS = ("--claude-mem-observer-sessions", "-private-tmp-", "--claude-plugins-")
 
+# Bash 経由でファイルを書き換える形（ブロックが掛からない抜け道）
+BASH_WRITE_MARKERS = ("sed -i", "tee ", "cat >", "cat >>", "> ", ">> ", "python3 -c", "perl -i")
+
 ALLOWED_SUFFIX = (".md", ".txt", ".log", ".jsonl")
 ALLOWED_SUBSTR = (
     "/.reports/", "/.claude/", "/scratchpad/",
@@ -64,7 +67,7 @@ def scan_transcripts(cutoff: float):
     """実際のツール使用をログから数える。主スレッドと委譲先を分ける。"""
     stats = {
         "skill": Counter(), "agent": 0, "workflow": 0,
-        "violation": Counter(), "delegated_edit": 0, "files": 0,
+        "violation": Counter(), "delegated_edit": 0, "files": 0, "bash_write": 0,
     }
     if not os.path.isdir(PROJECTS):
         return stats
@@ -119,6 +122,12 @@ def scan_transcripts(cutoff: float):
                                 stats["delegated_edit"] += 1
                             else:
                                 stats["violation"][path] += 1
+                        elif name == "Bash" and not side:
+                            # ★ ブロックは Edit|Write にしか掛からないので Bash は素通りする。
+                            #   規律で守る領域だが、使われたら数字に出るようにしておく。
+                            cmd = inp.get("command", "") or ""
+                            if any(m in cmd for m in BASH_WRITE_MARKERS) and "/app/" in cmd:
+                                stats["bash_write"] += 1
     return stats
 
 
@@ -138,6 +147,7 @@ def main() -> int:
     print(f"│    ブロック発動 ............ {kinds.get('block', 0):>5} 回  ← 機械が止めた")
     print(f"│    すり抜けた違反 .......... {violations:>5} 件  ← ★目標ゼロ")
     print(f"│    委譲先による編集 ........ {s['delegated_edit']:>5} 件  （正常）")
+    print(f"│    Bash 経由の書き換え ..... {s['bash_write']:>5} 件  ← 抜け道。規律で守る領域")
     if violations:
         print("│    違反の内訳 上位5:")
         for p, n in s["violation"].most_common(5):

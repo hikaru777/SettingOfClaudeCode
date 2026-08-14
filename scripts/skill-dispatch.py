@@ -29,11 +29,72 @@ def _log(kind: str, **fields) -> None:
         pass
 
 # --- ディレクター識別の印を残す ---------------------------------------------
-# UserPromptSubmit はユーザーが直接入力した時にしか発火しない。
-# teammate / subagent はユーザー入力を受け取らないので、ここを通るのは
-# 「人と対話しているセッション = ディレクター」だけ。
-# その session_id に印を付けておき、block-director-code-edit.py が参照する。
-def _mark_director() -> None:
+# 当初「UserPromptSubmit はユーザーが直接入力した時にしか発火しない」と考えていたが、
+# これは誤りだった（2026-08-15 実測）。teammate も次の経路でこのフックを通る:
+#   - ディレクターからの SendMessage
+#   - <task-notification>（子エージェントの完了通知）
+#   - <cross-session-message>（他セッションからの着信）
+# そのため印が teammate にも付き、worker のコード編集が誤ってブロックされた（実測5件）。
+#
+# 対策: 機械が生成した入力を弾き、人が打った発話だけで印を付ける。
+# 判定を誤るなら「印を付けない」側に倒す（印が無ければブロックは通すので作業が止まらない）。
+
+# 人の入力ではないもの（先頭がこれで始まる／これを含む）
+_MACHINE_MARKERS = (
+    "<task-notification>",
+    "<cross-session-message",
+    "<teammate-message",
+    "Another Claude session sent a message",
+    "[SYSTEM NOTIFICATION",
+    "<system-reminder>",
+    "<local-command-",
+)
+
+
+def _is_teammate_pane() -> bool:
+    """自分が teammate のペインで動いているか。
+
+    teammateMode: tmux では teammate は別ペインで立ち、ペインタイトルに
+    エージェント名が入る（実測: `%1 Mac` がディレクター、`%3 sid-probe` が teammate）。
+    ディレクターのペインはホスト名のまま。tmux 外なら判定不能で False。
+    """
+    pane = os.environ.get("TMUX_PANE")
+    if not pane or not os.environ.get("TMUX"):
+        return False
+    try:
+        import subprocess
+        r = subprocess.run(
+            ["tmux", "display-message", "-p", "-t", pane, "#{pane_title}"],
+            capture_output=True, text=True, timeout=3,
+        )
+        title = (r.stdout or "").strip()
+    except Exception:
+        return False
+    if not title:
+        return False
+    # ホスト名（= ディレクターのペイン）なら teammate ではない
+    try:
+        import socket
+        host = socket.gethostname().split(".")[0]
+    except Exception:
+        host = ""
+    return title != host and not title.startswith(host)
+
+
+def _is_human_input(prompt: str) -> bool:
+    """人がキーボードで打った発話か。判断がつかない時は False（安全側）。"""
+    if not prompt or not prompt.strip():
+        return False
+    # teammate のペインで動いているなら、届く入力は全て機械由来
+    if _is_teammate_pane():
+        return False
+    head = prompt.lstrip()[:400]
+    return not any(m in head for m in _MACHINE_MARKERS)
+
+
+def _mark_director(prompt: str) -> None:
+    if not _is_human_input(prompt):
+        return
     sid = os.environ.get("CLAUDE_CODE_SESSION_ID")
     if not sid:
         return
@@ -74,8 +135,6 @@ MAX_BYTES = 300
 
 
 def main() -> int:
-    _mark_director()
-
     try:
         payload = json.load(sys.stdin)
     except Exception:
@@ -83,6 +142,13 @@ def main() -> int:
 
     prompt = payload.get("prompt") or ""
     if not isinstance(prompt, str) or not prompt.strip():
+        return 0
+
+    # 人が打った発話の時だけディレクターの印を付ける
+    _mark_director(prompt)
+
+    # 機械由来の入力にはスキル注入もしない（teammate に的外れな指示が入るのを防ぐ）
+    if not _is_human_input(prompt):
         return 0
 
     line = None
