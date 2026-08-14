@@ -316,6 +316,16 @@
             "command": "/bin/sh -c '[ -x \"$HOME/.vibe-island/bin/vibe-island-bridge\" ] && \"$HOME/.vibe-island/bin/vibe-island-bridge\" --source claude; exit 0'"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/scripts/skill-dispatch.py\"",
+            "timeout": 5,
+            "statusMessage": "スキル発火を照合中"
+          }
+        ]
       }
     ]
   },

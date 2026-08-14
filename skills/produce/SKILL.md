@@ -1,6 +1,6 @@
 ---
 name: produce
-description: 指定アプリの宣伝資産を一式生成し可能な範囲で配信まで実行する。`/produce <アプリ名 or リポジトリパス>` で起動。起動時に Claude Value/宣伝/<アプリ>/produce-plan.md があれば読みその固有戦略で動く。ストック掲載・コピー一式(X/Show HN/Product Hunt/Reddit)・faceless動画/Shorts台本を作り、X投稿(node x.mjs post)とフォーム入力(Chrome DevTools)は自動、HN/PH/Reddit認証は人間。複数アプリ量産者向けに人間の正味作業を10〜15分に固定する。
+description: 「宣伝して」「広めて」「告知して」「ローンチする」「リリースを打ち出したい」と言われた時に必ず使う。ユーザーが /produce と打つのを待たず、この条件を満たしたら自分から起動すること。指定アプリの宣伝資産を一式生成し可能な範囲で配信まで実行する。★先に戦略が要る場合は /produce-plan を先に回すこと。起動時に Claude Value/宣伝/<アプリ>/produce-plan.md があれば読みその固有戦略で動く。ストック掲載・コピー一式(X/Show HN/Product Hunt/Reddit)・faceless動画/Shorts台本を作り、X投稿(node x.mjs post)とフォーム入力(Chrome DevTools)は自動、HN/PH/Reddit認証は人間。複数アプリ量産者向けに人間の正味作業を10〜15分に固定する。
 ---
 
 # /produce
